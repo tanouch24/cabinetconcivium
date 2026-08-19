@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+# La démo de l'espace client n'est pas indexée (prototype, pas encore sécurisée)
+Disallow: /app
