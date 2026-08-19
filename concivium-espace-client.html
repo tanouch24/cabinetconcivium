@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concivium — Espace client</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F1EFE8;--paper-2:#EAE7DD;--ink:#191C26;--ink-soft:#4A4D57;
+    --indigo:#232A44;--stamp:#9E2B25;--blue:#2C4A7C;--line:#D6D1C2;
+    --line-soft:#E2DED2;--paper-card:#FBFAF5;--green:#2E7D5B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:'Public Sans',system-ui,sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:'Spectral',Georgia,serif;font-weight:500;line-height:1.1;letter-spacing:-.01em}
+  .mono{font-family:'IBM Plex Mono',monospace}
+  a{color:inherit;text-decoration:none}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);font-weight:500}
+  .seal{width:30px;height:30px;border:1.5px solid var(--stamp);border-radius:50%;display:grid;place-items:center;color:var(--stamp);font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;flex:0 0 auto}
+  .brand{display:flex;align-items:center;gap:11px;font-family:'Spectral',serif;font-size:22px;font-weight:600}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:'Public Sans';font-weight:600;font-size:15px;background:var(--ink);color:var(--paper);padding:12px 20px;border-radius:2px;border:1px solid var(--ink);cursor:pointer;transition:transform .15s,background .15s}
+  .btn:hover{background:var(--indigo);transform:translateY(-1px)}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{background:var(--paper-2)}
+  .btn.sm{padding:8px 14px;font-size:13.5px}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+  /* ---------- AUTH ---------- */
+  #auth{min-height:100vh;display:grid;grid-template-columns:1fr 1.1fr}
+  .auth-aside{background:var(--indigo);color:#EDEBE3;padding:56px 52px;display:flex;flex-direction:column;justify-content:space-between}
+  .auth-aside .brand{color:#FBFAF5}
+  .auth-aside .seal{border-color:#8090BE;color:#8090BE}
+  .auth-aside h1{color:#FBFAF5;font-size:38px;margin:0 0 18px;line-height:1.12}
+  .auth-aside p{color:#C7CBD8;font-size:16px;max-width:34ch}
+  .auth-steps{display:grid;gap:16px;margin-top:8px}
+  .auth-step{display:flex;gap:14px;align-items:flex-start;font-size:14.5px;color:#C7CBD8}
+  .auth-step .i{width:26px;height:26px;border:1px solid #4A5578;border-radius:50%;display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9FB0D6;flex:0 0 auto}
+  .auth-aside .foot{font-size:12.5px;color:#8A90A4}
+  .auth-main{padding:52px;display:flex;align-items:center;overflow-y:auto}
+  .auth-card{width:100%;max-width:520px;margin:0 auto}
+  .auth-card>.eyebrow{margin-bottom:10px;display:block}
+  .auth-card h2{font-size:30px;margin-bottom:6px}
+  .auth-card .sub{color:var(--ink-soft);font-size:15px;margin-bottom:28px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+  .field label .opt{font-weight:400;color:var(--ink-soft)}
+  .field input,.field select,.field textarea{width:100%;font-family:'Public Sans';font-size:15px;padding:11px 13px;border:1px solid var(--line);border-radius:2px;background:#fff;color:var(--ink)}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--blue);outline-offset:-1px;border-color:var(--blue)}
+  .field textarea{resize:vertical;min-height:80px}
+  .siret-row{display:flex;gap:10px}
+  .siret-row input{flex:1}
+  .siret-status{font-size:12.5px;margin-top:7px;min-height:16px;font-family:'IBM Plex Mono',monospace}
+  .siret-status.ok{color:var(--green)}
+  .siret-status.err{color:var(--stamp)}
+  .siret-status.load{color:var(--ink-soft)}
+  .auth-card .btn.full{width:100%;padding:14px;margin-top:6px}
+  .auth-switch{text-align:center;font-size:14px;color:var(--ink-soft);margin-top:18px}
+  .auth-switch a{color:var(--blue);font-weight:600;cursor:pointer}
+  .legal{font-size:11.5px;color:var(--ink-soft);margin-top:14px;line-height:1.5}
+  @media(max-width:880px){#auth{grid-template-columns:1fr}.auth-aside{display:none}.auth-main{padding:32px 22px}}
+
+  /* ---------- DASHBOARD ---------- */
+  #dash{display:none;min-height:100vh}
+  .topbar{background:var(--paper-card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .topbar-in{max-width:1120px;margin:0 auto;padding:0 28px;height:66px;display:flex;align-items:center;justify-content:between;gap:20px}
+  .topbar-in .brand{font-size:20px}
+  .topbar-sp{flex:1}
+  .who{display:flex;align-items:center;gap:12px;font-size:14px}
+  .who .co{font-weight:600}
+  .who .avatar{width:34px;height:34px;border-radius:50%;background:var(--indigo);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}
+  .dash-wrap{max-width:1120px;margin:0 auto;padding:36px 28px 70px}
+  .dash-hi{margin-bottom:8px;font-size:28px}
+  .dash-sub{color:var(--ink-soft);margin-bottom:36px}
+  .sec-title{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:0 0 18px}
+  .sec-title h3{font-size:21px}
+  .sec-title .hint{font-size:13px;color:var(--ink-soft)}
+  .block{margin-bottom:46px}
+
+  /* Suivi table */
+  .suivi{background:var(--paper-card);border:1px solid var(--line-soft);border-radius:4px;overflow:hidden}
+  .suivi-row{display:grid;grid-template-columns:1.6fr 2.4fr auto;gap:20px;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line-soft)}
+  .suivi-row:last-child{border-bottom:none}
+  .suivi-row .m-obj{font-weight:600;font-size:15px;line-height:1.3}
+  .suivi-row .m-meta{font-size:12.5px;color:var(--ink-soft);margin-top:3px;font-family:'IBM Plex Mono',monospace}
+  .pipe{display:flex;align-items:center;gap:0}
+  .pipe .st{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;position:relative}
+  .pipe .st .dot{width:15px;height:15px;border-radius:50%;border:2px solid var(--line);background:var(--paper-card);z-index:2}
+  .pipe .st .lb{font-size:10.5px;color:var(--ink-soft);text-align:center;line-height:1.15;max-width:9ch}
+  .pipe .st::before{content:"";position:absolute;top:7px;left:-50%;width:100%;height:2px;background:var(--line);z-index:1}
+  .pipe .st:first-child::before{display:none}
+  .pipe .st.done .dot{background:var(--indigo);border-color:var(--indigo)}
+  .pipe .st.done::before{background:var(--indigo)}
+  .pipe .st.current .dot{background:var(--stamp);border-color:var(--stamp);box-shadow:0 0 0 4px rgba(158,43,37,.15)}
+  .pipe .st.current .lb{color:var(--stamp);font-weight:600}
+  .suivi-act{display:flex;flex-direction:column;gap:8px;align-items:flex-end;min-width:150px}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:2px;background:var(--paper-2);color:var(--ink-soft)}
+  .badge.accepte{background:#E4F0EA;color:var(--green)}
+  .empty{padding:34px 22px;text-align:center;color:var(--ink-soft);font-size:14.5px}
+
+  /* Tenders */
+  .feed{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{background:var(--paper-card);border:1px solid var(--line-soft);border-radius:3px;padding:18px;display:flex;flex-direction:column;gap:11px}
+  .card-top{display:flex;justify-content:space-between;align-items:center;font-size:11px}
+  .cpv{font-family:'IBM Plex Mono',monospace;color:var(--blue);background:#E9ECF3;padding:2px 7px;border-radius:2px}
+  .dept{font-family:'IBM Plex Mono',monospace;color:var(--ink-soft)}
+  .card h4{font-size:15px;font-weight:600;line-height:1.28}
+  .card .buyer{font-size:12.5px;color:var(--ink-soft);margin-top:-4px}
+  .card-foot{margin-top:auto;padding-top:11px;border-top:1px solid var(--line-soft);display:flex;justify-content:space-between;align-items:center;font-size:12px}
+  .card-foot .cl b{color:var(--stamp);font-family:'IBM Plex Mono',monospace;font-weight:500}
+  @media(max-width:820px){.feed{grid-template-columns:1fr}.suivi-row{grid-template-columns:1fr;gap:16px}.suivi-act{align-items:flex-start}}
+
+  /* toast */
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120%);background:var(--ink);color:var(--paper);padding:13px 20px;border-radius:3px;font-size:14px;font-weight:500;z-index:100;transition:transform .3s;box-shadow:0 10px 30px -10px rgba(0,0,0,.5)}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ================= AUTH ================= -->
+<div id="auth">
+  <aside class="auth-aside">
+    <div class="brand"><span class="seal">C</span>Concivium</div>
+    <div>
+      <span class="eyebrow" style="color:#9FB0D6">Espace client</span>
+      <h1>Votre premier marché public commence ici.</h1>
+      <p>Créez votre compte, on identifie les marchés faits pour votre activité, et on monte le dossier à votre place. Vous suivez tout depuis votre tableau de bord.</p>
+      <div class="auth-steps" style="margin-top:30px">
+        <div class="auth-step"><span class="i">1</span><div>On récupère votre entreprise avec votre SIRET.</div></div>
+        <div class="auth-step"><span class="i">2</span><div>On vous montre les marchés qui correspondent.</div></div>
+        <div class="auth-step"><span class="i">3</span><div>On prépare et dépose vos dossiers. Vous suivez l'avancement.</div></div>
+      </div>
+    </div>
+    <div class="foot">Données d'entreprise fournies par l'API officielle Recherche d'entreprises (INSEE / Sirene).</div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <span class="eyebrow">Créer un compte</span>
+      <h2>Ouvrez votre espace client</h2>
+      <p class="sub">Quelques informations sur votre entreprise et c'est parti.</p>
+
+      <div class="field">
+        <label for="siret">Numéro SIRET <span class="opt">— 14 chiffres, on remplit le reste</span></label>
+        <div class="siret-row">
+          <input id="siret" type="text" inputmode="numeric" placeholder="ex. 552 100 554 00021" maxlength="17">
+          <button class="btn ghost sm" type="button" id="siretBtn">Vérifier</button>
+        </div>
+        <div class="siret-status" id="siretStatus"></div>
+      </div>
+
+      <div class="field">
+        <label for="societe">Société</label>
+        <input id="societe" type="text" placeholder="Raison sociale">
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="secteur">Secteur d'activité</label>
+          <input id="secteur" type="text" placeholder="ex. Espaces verts">
+        </div>
+        <div class="field">
+          <label for="dept">Département</label>
+          <input id="dept" type="text" placeholder="ex. 69" maxlength="3">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="salaries">Nombre de salariés</label>
+          <select id="salaries">
+            <option value="">Choisir…</option>
+            <option>1 à 2</option><option>3 à 5</option><option>6 à 9</option>
+            <option>10 à 19</option><option>20 à 49</option><option>50 et +</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="ca">Chiffre d'affaires annuel</label>
+          <select id="ca">
+            <option value="">Choisir…</option>
+            <option>Moins de 100 k€</option><option>100 k€ – 500 k€</option>
+            <option>500 k€ – 1 M€</option><option>1 M€ – 5 M€</option><option>Plus de 5 M€</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="tel">Téléphone</label>
+          <input id="tel" type="tel" placeholder="06 12 34 56 78">
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="vous@entreprise.fr">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="presentation">Présentez votre activité <span class="opt">— en quelques lignes</span></label>
+        <textarea id="presentation" placeholder="Ce que fait votre entreprise, vos références, ce sur quoi vous voulez vous positionner…"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="pwd">Mot de passe</label>
+        <input id="pwd" type="password" placeholder="8 caractères minimum">
+      </div>
+
+      <button class="btn full" type="button" id="createBtn">Créer mon compte</button>
+      <p class="legal">En créant un compte, vous acceptez que Concivium utilise ces informations pour préparer vos candidatures. Aucun engagement financier tant que vous n'avez pas validé un accompagnement.</p>
+      <p class="auth-switch">Déjà client ? <a id="toLogin">Se connecter</a></p>
+    </div>
+  </main>
+</div>
+
+<!-- ================= DASHBOARD ================= -->
+<div id="dash">
+  <div class="topbar">
+    <div class="topbar-in">
+      <div class="brand"><span class="seal">C</span>Concivium</div>
+      <div class="topbar-sp"></div>
+      <div class="who">
+        <span class="co" id="whoCo">—</span>
+        <span class="avatar" id="whoAv">?</span>
+        <button class="btn ghost sm" type="button" id="logoutBtn">Déconnexion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-wrap">
+    <h2 class="dash-hi" id="dashHi">Bonjour 👋</h2>
+    <p class="dash-sub" id="dashSub">Voici les marchés qui correspondent à votre activité et le suivi de vos dossiers.</p>
+
+    <!-- SUIVI -->
+    <section class="block">
+      <div class="sec-title">
+        <h3>Suivi de vos dossiers</h3>
+        <span class="hint">Chaque dossier est monté et déposé par notre équipe.</span>
+      </div>
+      <div class="suivi" id="suivi"></div>
+    </section>
+
+    <!-- MARCHES -->
+    <section class="block">
+      <div class="sec-title">
+        <h3>Marchés qui vous correspondent</h3>
+        <span class="hint" id="feedHint">Sélectionnés selon votre activité et votre département.</span>
+      </div>
+      <div class="feed" id="feed"></div>
+    </section>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ---------- state (en mémoire — Claude Code branchera la vraie base) ----------
+const state={ user:null, dossiers:[] };
+const STEPS=["Demande en cours","Dossier établi","Dossier déposé","Dossier accepté"];
+
+const $=s=>document.querySelector(s);
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2600);}
+function esc(s){return String(s==null?"":s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
+
+// ---------- SIRET autofill (API gouv gratuite, sans clé) ----------
+$("#siretBtn").addEventListener("click",verifySiret);
+$("#siret").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();verifySiret();}});
+
+async function verifySiret(){
+  const raw=$("#siret").value.replace(/\D/g,"");
+  const st=$("#siretStatus");
+  if(raw.length<9){st.className="siret-status err";st.textContent="Saisissez un SIRET (14) ou SIREN (9) valide.";return;}
+  st.className="siret-status load";st.textContent="Recherche en cours…";
+  try{
+    const r=await fetch("https://recherche-entreprises.api.gouv.fr/search?q="+encodeURIComponent(raw)+"&per_page=1");
+    if(!r.ok)throw 0;
+    const j=await r.json();
+    const e=(j.results||[])[0];
+    if(!e){st.className="siret-status err";st.textContent="Entreprise introuvable. Vérifiez le numéro.";return;}
+    const siege=e.siege||{};
+    $("#societe").value=e.nom_complet||e.nom_raison_sociale||"";
+    $("#secteur").value=e.activite_principale ? (siege.libelle_activite_principale||e.libelle_activite_principale||("NAF "+e.activite_principale)) : "";
+    const cp=siege.code_postal||"";
+    if(cp) $("#dept").value=cp.slice(0,2);
+    st.className="siret-status ok";st.textContent="✓ "+($("#societe").value||"Entreprise trouvée")+" — infos pré-remplies.";
+  }catch(err){
+    st.className="siret-status err";st.textContent="Service indisponible — remplissez les champs à la main.";
+  }
+}
+
+// ---------- création de compte ----------
+$("#createBtn").addEventListener("click",()=>{
+  const co=$("#societe").value.trim();
+  const tel=$("#tel").value.trim();
+  const email=$("#email").value.trim();
+  if(!co){toast("Renseignez votre société (ou vérifiez votre SIRET).");return;}
+  if(!tel){toast("Le téléphone est requis.");return;}
+  if(!email){toast("L'email est requis.");return;}
+  state.user={
+    societe:co, secteur:$("#secteur").value.trim(), dept:$("#dept").value.trim(),
+    salaries:$("#salaries").value, ca:$("#ca").value, tel, email,
+    presentation:$("#presentation").value.trim()
+  };
+  openDashboard();
+});
+$("#toLogin").addEventListener("click",()=>toast("Écran de connexion — à brancher en prod."));
+$("#logoutBtn").addEventListener("click",()=>{state.user=null;state.dossiers=[];$("#dash").style.display="none";$("#auth").style.display="grid";window.scrollTo(0,0);});
+
+// ---------- dashboard ----------
+function initials(name){return (name||"?").replace(/[^A-Za-zÀ-ÿ ]/g,"").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase()||"?";}
+
+function openDashboard(){
+  const u=state.user;
+  $("#auth").style.display="none";
+  $("#dash").style.display="block";
+  $("#whoCo").textContent=u.societe;
+  $("#whoAv").textContent=initials(u.societe);
+  $("#dashHi").textContent="Bonjour, "+u.societe;
+  window.scrollTo(0,0);
+  // dossier de démonstration déjà en cours
+  state.dossiers=[{obj:"Entretien des espaces verts — lot 2",buyer:"Ville de Lyon",ref:"26-04812",dept:u.dept||"69",step:1}];
+  renderSuivi();
+  loadFeed(u.dept);
+}
+
+function renderSuivi(){
+  const box=$("#suivi");
+  if(!state.dossiers.length){box.innerHTML='<div class="empty">Aucun dossier pour l\'instant. Choisissez un marché ci-dessous pour lancer un accompagnement.</div>';return;}
+  box.innerHTML=state.dossiers.map((d,i)=>{
+    const accepted=d.step>=3;
+    const pipe=STEPS.map((s,si)=>{
+      const cls=si<d.step?"done":(si===d.step?"current":"");
+      return `<div class="st ${cls}"><span class="dot"></span><span class="lb">${s}</span></div>`;
+    }).join("");
+    const badge=accepted?'<span class="badge accepte">Accepté</span>':'<span class="badge">'+STEPS[d.step]+'</span>';
+    const act=accepted
+      ? `<button class="btn sm" type="button" onclick="askAcompte(${i})">Demander un acompte</button>`
+      : `<button class="btn ghost sm" type="button" onclick="advance(${i})">Étape suivante ▸</button>`;
+    return `<div class="suivi-row">
+      <div><div class="m-obj">${esc(d.obj)}</div><div class="m-meta">${esc(d.buyer)} · réf. ${esc(d.ref)} · ${esc(d.dept)}</div></div>
+      <div class="pipe">${pipe}</div>
+      <div class="suivi-act">${badge}${act}</div>
+    </div>`;
+  }).join("");
+}
+window.advance=i=>{const d=state.dossiers[i];if(d.step<STEPS.length-1){d.step++;renderSuivi();toast("Statut mis à jour : "+STEPS[d.step]);}};
+window.askAcompte=i=>{toast("Demande d'acompte transmise pour « "+state.dossiers[i].obj+" ».");};
+
+function addDossier(t){
+  if(state.dossiers.some(d=>d.ref===t.ref)){toast("Ce marché est déjà dans votre suivi.");return;}
+  state.dossiers.unshift({obj:t.title,buyer:t.buyer,ref:t.ref,dept:t.dept,step:0});
+  renderSuivi();
+  toast("Accompagnement lancé — on vous recontacte sous 24h.");
+  document.querySelector("#suivi").scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+// ---------- feed BOAMP (filtré par département si dispo) ----------
+const SAMPLE=[
+  {cpv:"77310000",dept:"69",title:"Entretien des espaces verts communaux",buyer:"Ville de Lyon",days:9,ref:"26-04812"},
+  {cpv:"45210000",dept:"38",title:"Rénovation énergétique d'un groupe scolaire",buyer:"Commune de Grenoble",days:14,ref:"26-04790"},
+  {cpv:"90910000",dept:"75",title:"Nettoyage de locaux administratifs",buyer:"Département de Paris",days:6,ref:"26-04833"},
+  {cpv:"72500000",dept:"33",title:"Maintenance du système d'information",buyer:"Métropole de Bordeaux",days:21,ref:"26-04758"},
+  {cpv:"55520000",dept:"13",title:"Fourniture de repas (cantines scolaires)",buyer:"Ville de Marseille",days:11,ref:"26-04801"},
+  {cpv:"50110000",dept:"44",title:"Maintenance du parc de véhicules municipaux",buyer:"Ville de Nantes",days:8,ref:"26-04779"},
+];
+function dl(d){if(d==null)return"—";if(d<0)return"clôturé";if(d===0)return"aujourd'hui";return"J-"+d;}
+function renderFeed(list){
+  window._feed=list;
+  $("#feed").innerHTML=list.slice(0,6).map((m,idx)=>`
+    <div class="card">
+      <div class="card-top"><span class="cpv">CPV ${esc(String(m.cpv).slice(0,8))}</span><span class="dept">${esc(m.dept||'—')}</span></div>
+      <h4>${esc(m.title)}</h4>
+      <div class="buyer">${esc(m.buyer)}</div>
+      <div class="card-foot">
+        <span class="cl">Clôture <b>${dl(m.days)}</b></span>
+        <button class="btn sm" type="button" onclick='addDossier(window._feed[${idx}])'>Être accompagné</button>
+      </div>
+    </div>`).join("");
+}
+async function loadFeed(dept){
+  renderFeed(SAMPLE);
+  try{
+    let where='nature_categorise_libelle="Avis de marché"';
+    if(dept && /^\d{2,3}$/.test(dept)) where+=` and code_departement="${dept}"`;
+    const u="https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/boamp/records?where="+encodeURIComponent(where)+"&order_by=dateparution%20desc&limit=12";
+    const r=await fetch(u,{headers:{Accept:"application/json"}});
+    if(!r.ok)return;
+    const j=await r.json();
+    const recs=(j.results||[]).map(x=>x.record?x.record.fields:(x.fields||x));
+    const pick=(o,ks)=>{for(const k of ks){if(o&&o[k]!=null&&o[k]!=="")return o[k];}return null;};
+    const today=new Date();
+    const out=recs.map(o=>{
+      const title=pick(o,['objet','object','intitule','titre']);
+      if(!title)return null;
+      const dlv=pick(o,['datelimitereponse','date_limite_reponse','datelimite']);
+      let days=null;if(dlv){const d=new Date(dlv);if(!isNaN(d))days=Math.round((d-today)/864e5);}
+      return{cpv:pick(o,['code_cpv','cpv','descripteur_code'])||"—",dept:pick(o,['code_departement','departement'])||dept||"—",
+        title:String(title).slice(0,88),buyer:pick(o,['nomacheteur','nom_acheteur','acheteur','organisme'])||"Acheteur public",
+        days,ref:pick(o,['idweb','id','reference'])||"—"};
+    }).filter(Boolean).filter(m=>m.days==null||m.days>=0);
+    if(out.length>=3){renderFeed(out);$("#feedHint").textContent=dept?("Marchés récents dans le "+dept+", ciblés sur votre activité."):"Marchés récents, ciblés sur votre activité.";}
+  }catch(e){/* garde SAMPLE */}
+}
+</script>
+</body>
+</html>
