@@ -1,0 +1,4 @@
+# Site statique HTML — aucun build nécessaire.
+# Netlify sert index.html à la racine automatiquement.
+[build]
+  publish = "."
