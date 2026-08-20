@@ -181,6 +181,15 @@
     .side-main{padding:24px 16px}
     .profil-form .grid2{grid-template-columns:1fr}
   }
+  .panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:2px}
+  .docs-drop{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--paper-card);border:1px dashed var(--line);border-radius:4px;padding:20px}
+  .docs-drop input[type=file]{font-family:'Public Sans';font-size:14px}
+  .docs-list{margin-top:18px;display:grid;gap:8px;max-width:720px}
+  .doc-item{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--paper-card);border:1px solid var(--line-soft);border-radius:3px;padding:12px 16px;font-size:14px}
+  .doc-item .dname{font-weight:500;word-break:break-all}
+  .doc-item .dmeta{font-size:12px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace}
+  .doc-item .dacts{display:flex;gap:14px;flex-shrink:0}
+  .rdv-placeholder{background:var(--paper-2);border:1px solid var(--line-soft);border-radius:4px;padding:34px;text-align:center;color:var(--ink-soft);max-width:720px;line-height:1.6}
   .modal-overlay{position:fixed;inset:0;background:rgba(25,28,38,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
   .modal-box{background:var(--paper-card);border-radius:5px;max-width:580px;width:100%;max-height:88vh;overflow-y:auto;padding:30px;position:relative;box-shadow:0 30px 60px -20px rgba(0,0,0,.5)}
   .modal-x{position:absolute;top:12px;right:16px;background:none;border:none;font-size:26px;line-height:1;color:var(--ink-soft);cursor:pointer}
@@ -327,13 +336,15 @@
     <aside class="side"><nav>
       <a class="side-link on" data-panel="dossiers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="17" height="17"><path d="M4 4h10l6 6v10H4z"/><path d="M14 4v6h6"/></svg> Mes dossiers</a>
       <a class="side-link" data-panel="recherche"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="17" height="17"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg> Rechercher des marchés</a>
+      <a class="side-link" data-panel="rdv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="17" height="17"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg> Rendez-vous</a>
+      <a class="side-link" data-panel="docs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="17" height="17"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg> Mes documents</a>
       <a class="side-link" data-panel="profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="17" height="17"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg> Mon profil</a>
     </nav></aside>
     <main class="side-main">
       <div id="profilAlert" class="profil-alert" style="display:none"><span><b>Profil incomplet.</b> Renseignez tous les champs de votre profil pour pouvoir postuler à un marché.</span><button class="btn" type="button" onclick="switchPanel('profil')">Compléter mon profil</button></div>
 
       <section class="panel on" id="panel-dossiers">
-        <h2 class="hi">Mes dossiers</h2>
+        <div class="panel-head"><h2 class="hi">Mes dossiers</h2><button class="btn" type="button" onclick="switchPanel('recherche')">+ Postuler à un marché</button></div>
         <p class="sub">Le suivi de vos candidatures — chaque dossier est monté et déposé par notre équipe.</p>
         <div class="suivi" id="suivi"></div>
       </section>
@@ -350,6 +361,23 @@
         <div class="d-count" id="d_count">Chargement…</div>
         <div class="feed" id="d_grid"></div>
         <div style="display:flex;justify-content:center;padding:10px 0 20px"><button class="btn ghost" id="d_more" style="display:none">Charger plus de marchés</button></div>
+      </section>
+
+      <section class="panel" id="panel-rdv">
+        <h2 class="hi">Prendre rendez-vous</h2>
+        <p class="sub">Réservez un créneau pour faire le point ou lancer la mise en place d'un dossier.</p>
+        <div id="rdv_wrap"></div>
+      </section>
+
+      <section class="panel" id="panel-docs">
+        <div class="panel-head"><h2 class="hi">Mes documents</h2></div>
+        <p class="sub">Déposez vos pièces (Kbis, RIB, attestations, références…). Elles nous servent à monter vos dossiers — vous seul et notre équipe y avez accès.</p>
+        <div class="docs-drop">
+          <input type="file" id="doc_file" multiple>
+          <button class="btn" type="button" id="doc_upload">Téléverser</button>
+        </div>
+        <div id="doc_status" class="d-count" style="margin-top:12px"></div>
+        <div id="doc_list" class="docs-list"></div>
       </section>
 
       <section class="panel" id="panel-profil">
@@ -423,6 +451,8 @@
 const SUPABASE_URL="https://ramouwnprmfzbrgchzhn.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhbW91d25wcm1memJyZ2NoemhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyMDY5OTEsImV4cCI6MjEwMjc4Mjk5MX0.RaOJRQD8Wqm7N4zKcUnH_LBw5nVcsWBkn_5jyi5B5ac";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const CALENDLY_URL=""; // colle ton lien Calendly ici plus tard, ex: https://calendly.com/ton-compte/30min
+const DOCS_BUCKET="documents";
 
 const STEPS=["Demande en cours","Dossier établi","Dossier déposé","Dossier accepté"];
 const state={user:null,profile:null,role:"client",dossiers:[],adminDossiers:[],adminClients:[],pending:null,routing:false};
@@ -590,7 +620,7 @@ async function reloadClientDossiers(){
 }
 function renderSuivi(){
   const box=$("#suivi");const D=state.dossiers;
-  if(!D.length){box.innerHTML='<div class="empty">Aucun dossier pour l\'instant. Choisissez un marché ci-dessous pour lancer un accompagnement.</div>';return;}
+  if(!D.length){box.innerHTML='<div class="empty">Aucun dossier pour l\'instant. Cliquez sur « Postuler à un marché » pour commencer.</div>';return;}
   box.innerHTML=D.map(d=>{
     const accepted=d.step>=3;
     const pipe=STEPS.map((s,si)=>{const cls=si<d.step?"done":(si===d.step?"current":"");return `<div class="st ${cls}"><span class="dot"></span><span class="lb">${s}</span></div>`;}).join("");
@@ -659,6 +689,8 @@ function switchPanel(name){
   document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("on",p.id==="panel-"+name));
   if(name==="recherche" && !dst.inited) dInit();
   if(name==="profil") fillProfileForm();
+  if(name==="rdv") initRdv();
+  if(name==="docs") loadDocs();
 }
 document.querySelectorAll(".side-link").forEach(l=>l.addEventListener("click",()=>switchPanel(l.getAttribute("data-panel"))));
 
@@ -850,6 +882,58 @@ async function tryAddDossier(m){
   return true;
 }
 
+/* ================= RENDEZ-VOUS (Calendly) ================= */
+let rdvInited=false;
+function initRdv(){
+  const w=document.getElementById("rdv_wrap");if(!w)return;
+  if(CALENDLY_URL){
+    if(!rdvInited){
+      w.innerHTML=`<div class="calendly-inline-widget" data-url="${CALENDLY_URL}" style="min-width:320px;height:700px"></div>`;
+      const sc=document.createElement("script");sc.src="https://assets.calendly.com/assets/external/widget.js";sc.async=true;document.body.appendChild(sc);
+      rdvInited=true;
+    }
+  } else {
+    w.innerHTML='<div class="rdv-placeholder">La prise de rendez-vous en ligne arrive très bientôt.<br>En attendant, écrivez-nous et nous fixerons un créneau ensemble.</div>';
+  }
+}
+
+/* ================= MES DOCUMENTS (Supabase Storage) ================= */
+async function loadDocs(){
+  const list=document.getElementById("doc_list");const st=document.getElementById("doc_status");
+  if(!list)return;list.innerHTML="";st.textContent="Chargement…";
+  const {data,error}=await sb.storage.from(DOCS_BUCKET).list(state.user.id,{limit:100,sortBy:{column:"created_at",order:"desc"}});
+  if(error){st.textContent="";list.innerHTML='<div class="empty">Le stockage n\'est pas encore configuré. (Créez le bucket « documents » dans Supabase — voir les instructions.)</div>';return;}
+  st.textContent="";
+  const files=(data||[]).filter(f=>f && f.name && f.id);
+  if(!files.length){list.innerHTML='<div class="empty">Aucun document déposé pour l\'instant.</div>';return;}
+  list.innerHTML=files.map(f=>{
+    const kb=(f.metadata&&f.metadata.size)?Math.round(f.metadata.size/1024)+" Ko":"";
+    return `<div class="doc-item"><div><div class="dname">${esc(f.name)}</div><div class="dmeta">${kb}</div></div>
+      <div class="dacts"><span class="lnk" onclick="viewDoc('${encodeURIComponent(f.name)}')">Ouvrir</span><span class="lnk mut" onclick="delDoc('${encodeURIComponent(f.name)}')">Supprimer</span></div></div>`;
+  }).join("");
+}
+(function bindDocUpload(){
+  const btn=document.getElementById("doc_upload");if(!btn)return;
+  btn.addEventListener("click",async()=>{
+    const inp=document.getElementById("doc_file");const st=document.getElementById("doc_status");
+    if(!inp.files||!inp.files.length){toast("Choisissez un fichier.");return;}
+    st.textContent="Envoi…";
+    for(const file of inp.files){
+      const clean=file.name.replace(/[^\w.\-]/g,"_");
+      const path=state.user.id+"/"+clean;
+      const {error}=await sb.storage.from(DOCS_BUCKET).upload(path,file,{upsert:true});
+      if(error){toast(error.message);st.textContent="";return;}
+    }
+    inp.value="";st.textContent="";toast("Document(s) ajouté(s).");loadDocs();
+  });
+})();
+window.viewDoc=async n=>{const name=decodeURIComponent(n);
+  const {data,error}=await sb.storage.from(DOCS_BUCKET).createSignedUrl(state.user.id+"/"+name,120);
+  if(error){toast(error.message);return;}window.open(data.signedUrl,"_blank");};
+window.delDoc=async n=>{const name=decodeURIComponent(n);
+  const {error}=await sb.storage.from(DOCS_BUCKET).remove([state.user.id+"/"+name]);
+  if(error){toast(error.message);return;}toast("Document supprimé.");loadDocs();};
+
 /* ================= BACK-OFFICE ADMIN ================= */
 async function openAdmin(){
   $("#dash").classList.add("hidden");$("#admin").classList.remove("hidden");
@@ -910,9 +994,21 @@ window.openClientSheet=(id)=>{
       ${row("Chiffre d'affaires",c.ca)}
     </div>
     ${c.presentation?`<div style="margin-top:16px;font-size:14px;color:var(--ink-soft);border-top:1px solid var(--line-soft);padding-top:14px"><b style="color:var(--ink)">Présentation</b><br>${esc(c.presentation)}</div>`:""}
-    <div class="modal-dossiers"><b style="font-size:14px">Dossiers (${dos.length})</b>${dosHtml}</div>`;
+    <div class="modal-dossiers"><b style="font-size:14px">Dossiers (${dos.length})</b>${dosHtml}</div>
+    <div class="modal-dossiers" id="sheetDocs"><b style="font-size:14px">Documents</b><div style="color:var(--ink-soft);font-size:13px;padding:6px 0">Chargement…</div></div>`;
   document.getElementById("modal").style.display="flex";
+  loadClientDocs(id);
 };
+async function loadClientDocs(id){
+  const box=document.getElementById("sheetDocs");if(!box)return;
+  const {data,error}=await sb.storage.from(DOCS_BUCKET).list(id,{limit:100});
+  const files=(data||[]).filter(f=>f&&f.name&&f.id);
+  if(error||!files.length){box.innerHTML='<b style="font-size:14px">Documents</b><div style="color:var(--ink-soft);font-size:13px;padding:6px 0">'+(error?'Stockage non configuré.':'Aucun document déposé.')+'</div>';return;}
+  box.innerHTML='<b style="font-size:14px">Documents ('+files.length+')</b>'+files.map(f=>`<div class="md-row"><span>${esc(f.name)}</span><span class="lnk" onclick="adminViewDoc('${id}','${encodeURIComponent(f.name)}')">Ouvrir</span></div>`).join("");
+}
+window.adminViewDoc=async(id,n)=>{const name=decodeURIComponent(n);
+  const {data,error}=await sb.storage.from(DOCS_BUCKET).createSignedUrl(id+"/"+name,120);
+  if(error){toast(error.message);return;}window.open(data.signedUrl,"_blank");};
 window.adminAdvance=async id=>{const d=state.adminDossiers.find(x=>x.id===id);if(!d||d.step>=STEPS.length-1)return;
   const {error}=await sb.from("dossiers").update({step:d.step+1}).eq("id",id);
   if(error){toast(error.message);return;}await adminLoad();toast("Statut mis à jour.");};
