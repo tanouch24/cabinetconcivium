@@ -1,3 +1,0 @@
-# Site statique HTML — aucun build nécessaire.
-[build]
-  publish = "."
