@@ -211,12 +211,23 @@ async function resolveSchema(){
   }
   SCHEMA=SCHEMAS[SCHEMAS.length-1];return SCHEMA;
 }
-function buildWhere(){
-  const s=SCHEMA,w=[];
-  if(s.type)w.push(`${s.type}="Avis de marché"`);
-  if(st.dep&&/^\d{2,3}$/.test(st.dep))w.push(`${s.dep}="${st.dep}"`);
-  for(const t of [st.secteur,st.q].filter(Boolean)){const tt=t.replace(/["%\\]/g,"");w.push(`${s.text} like "%${tt}%"`);}
-  return w.join(" and ");
+function candidates(){
+  const s=SCHEMA;
+  const type=s.type?`${s.type}="Avis de marché"`:null;
+  const hasDep=st.dep&&/^\d{2,3}$/.test(st.dep);
+  const terms=[st.secteur,st.q].filter(Boolean).map(t=>t.replace(/["%\\]/g,""));
+  const txt=terms.length?terms.map(t=>`search("${t}")`).join(" and "):null;
+  const j=(...a)=>a.filter(Boolean).join(" and ");
+  const c=[];
+  if(hasDep){
+    c.push(j(type,`departement="${st.dep}"`,txt));
+    c.push(j(type,`code_departement="${st.dep}"`,txt));
+    c.push(j(type,`departement="${st.dep}"`));
+    c.push(j(type,`code_departement="${st.dep}"`));
+  }
+  if(txt)c.push(j(type,txt));
+  c.push(type||""); c.push("");
+  return [...new Set(c)];
 }
 function reload(){st.offset=0;st.ended=false;st.items=[];fetchPage(true);}
 
@@ -226,9 +237,13 @@ async function fetchPage(reset){
   else{$("#moreBtn").disabled=true;$("#moreBtn").textContent="Chargement…";}
   try{await resolveSchema();}catch(e){}
   let data=null;
-  try{data=await odsFetch(buildWhere(),PAGE,st.offset);}
-  catch(e){ // dernier recours : sans filtre texte
-    try{const s=SCHEMA;let w=[];if(s.type)w.push(`${s.type}="Avis de marché"`);if(st.dep)w.push(`${s.dep}="${st.dep}"`);data=await odsFetch(w.join(" and "),PAGE,st.offset);}catch(e2){data=null;}
+  if(reset){
+    st.activeWhere=null;
+    for(const cw of candidates()){
+      try{ data=await odsFetch(cw,PAGE,st.offset); st.activeWhere=cw; break; }catch(e){}
+    }
+  } else {
+    try{ data=await odsFetch(st.activeWhere||"",PAGE,st.offset); }catch(e){ data=null; }
   }
   st.loading=false;$("#moreBtn").disabled=false;$("#moreBtn").textContent="Charger plus de marchés";
 

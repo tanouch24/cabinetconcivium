@@ -181,6 +181,19 @@
     .side-main{padding:24px 16px}
     .profil-form .grid2{grid-template-columns:1fr}
   }
+  .modal-overlay{position:fixed;inset:0;background:rgba(25,28,38,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
+  .modal-box{background:var(--paper-card);border-radius:5px;max-width:580px;width:100%;max-height:88vh;overflow-y:auto;padding:30px;position:relative;box-shadow:0 30px 60px -20px rgba(0,0,0,.5)}
+  .modal-x{position:absolute;top:12px;right:16px;background:none;border:none;font-size:26px;line-height:1;color:var(--ink-soft);cursor:pointer}
+  .modal-x:hover{color:var(--ink)}
+  .modal-box h3{font-size:21px;margin-bottom:4px;line-height:1.25}
+  .modal-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin-bottom:10px}
+  .modal-kv{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;margin-top:18px;font-size:14px;border-top:1px solid var(--line-soft);padding-top:16px}
+  .modal-kv .k{color:var(--ink-soft)}
+  .modal-kv .v{font-weight:500;text-align:right}
+  .modal-actions{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap}
+  .modal-dossiers{margin-top:18px;border-top:1px solid var(--line-soft);padding-top:14px}
+  .modal-dossiers .md-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;font-size:13.5px;border-bottom:1px solid var(--line-soft)}
+  .modal-dossiers .md-row:last-child{border-bottom:none}
   .profil-alert{background:#FBEEEC;border:1px solid #E7C4BF;border-left:3px solid var(--stamp);border-radius:3px;padding:12px 16px;margin-bottom:24px;font-size:14px;color:var(--ink);display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}
   .profil-alert b{color:var(--stamp)}
   .profil-alert .btn{padding:7px 13px;font-size:13px}
@@ -401,6 +414,7 @@
   </div>
 </div>
 
+<div id="modal" class="modal-overlay" style="display:none"><div class="modal-box"><button class="modal-x" type="button" onclick="closeModal()">×</button><div id="modalBody"></div></div></div>
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -724,11 +738,25 @@ async function dResolveSchema(){
     const j=await r.json();if(!sc.type||(j.total_count||0)>0){DSCHEMA=sc;return sc;}}catch(e){}}
   DSCHEMA=DSCHEMAS[DSCHEMAS.length-1];return DSCHEMA;
 }
-function dBuildWhere(){const sc=DSCHEMA,w=[];
-  if(sc.type)w.push(`${sc.type}="Avis de marché"`);
-  if(dst.dep&&/^\d{2,3}$/.test(dst.dep))w.push(`${sc.dep}="${dst.dep}"`);
-  for(const t of [dst.secteur,dst.q].filter(Boolean)){const tt=t.replace(/["%\\]/g,"");w.push(`${sc.text} like "%${tt}%"`);}
-  return w.join(" and ");}
+function dCandidates(){
+  const sc=DSCHEMA;
+  const type=sc.type?`${sc.type}="Avis de marché"`:null;
+  const hasDep=dst.dep&&/^\d{2,3}$/.test(dst.dep);
+  const terms=[dst.secteur,dst.q].filter(Boolean).map(t=>t.replace(/["%\\]/g,""));
+  const txt=terms.length?terms.map(t=>`search("${t}")`).join(" and "):null;
+  const j=(...a)=>a.filter(Boolean).join(" and ");
+  const c=[];
+  if(hasDep){
+    c.push(j(type,`departement="${dst.dep}"`,txt));
+    c.push(j(type,`code_departement="${dst.dep}"`,txt));
+    c.push(j(type,`departement="${dst.dep}"`));
+    c.push(j(type,`code_departement="${dst.dep}"`));
+  }
+  if(txt)c.push(j(type,txt));
+  c.push(type||"");
+  c.push("");
+  return [...new Set(c)];
+}
 async function dOds(where){const u=DAPI+"?limit="+DPAGE+"&offset="+dst.offset+"&order_by="+encodeURIComponent((DSCHEMA.pub||"dateparution")+" desc")+(where?("&where="+encodeURIComponent(where)):"");
   const r=await fetch(u,{headers:{Accept:"application/json"}});if(!r.ok)throw 0;return r.json();}
 function dReload(){dst.offset=0;dst.ended=false;dst.items=[];dFetch(true);}
@@ -739,16 +767,23 @@ async function dFetch(reset){
   else{document.getElementById("d_more").textContent="Chargement…";}
   try{await dResolveSchema();}catch(e){}
   let data=null;
-  try{data=await dOds(dBuildWhere());}
-  catch(e){try{const sc=DSCHEMA;let w=[];if(sc.type)w.push(`${sc.type}="Avis de marché"`);if(dst.dep)w.push(`${sc.dep}="${dst.dep}"`);data=await dOds(w.join(" and "));}catch(e2){data=null;}}
+  if(reset){
+    dst.activeWhere=null;
+    for(const cw of dCandidates()){
+      try{ data=await dOds(cw); dst.activeWhere=cw; break; }catch(e){}
+    }
+  } else {
+    try{ data=await dOds(dst.activeWhere||""); }catch(e){ data=null; }
+  }
   dst.loading=false;document.getElementById("d_more").textContent="Charger plus de marchés";
-  if(!data){document.getElementById("d_count").textContent="Flux indisponible, réessayez.";dst.loading=false;return;}
+  if(!data){document.getElementById("d_count").textContent="Flux momentanément indisponible, réessayez.";return;}
   dst.total=data.total_count!=null?data.total_count:dst.total;
   const today=new Date();
   const arr=(data.results||[]).map(x=>{const o=x.record?x.record.fields:(x.fields||x);
     const title=dpick(o,['objet','resume','intitule','titre']);if(!title)return null;
     const dlv=dpick(o,['datelimitereponse','date_limite_reponse','datelimite']);let days=null;if(dlv){const d=new Date(dlv);if(!isNaN(d))days=Math.round((d-today)/864e5);}
-    return{cpv:dpick(o,['descripteur_code','code_cpv','cpv'])||"—",dept:dpick(o,['departement','code_departement'])||dst.dep||"—",title:String(title).slice(0,100),buyer:dpick(o,['nomacheteur','nom_acheteur','acheteur','organisme'])||"Acheteur public",days,ref:dpick(o,['idweb','id','reference'])||"—"};
+    const ref=dpick(o,['idweb','id','reference'])||"—";
+    return{cpv:dpick(o,['descripteur_code','code_cpv','cpv'])||"—",dept:dpick(o,['departement','code_departement'])||dst.dep||"—",title:String(title).slice(0,100),objetFull:String(title),buyer:dpick(o,['nomacheteur','nom_acheteur','acheteur','organisme'])||"Acheteur public",days,ref,parution:dpick(o,['dateparution','date_parution']),cloture:dlv,url:dpick(o,['url_avis','url','lien_avis'])||(ref&&ref!=="—"?("https://www.boamp.fr/pages/avis/?q="+encodeURIComponent(ref)):null)};
   }).filter(Boolean).filter(m=>m.days==null||m.days>=0);
   dst.items=reset?arr:dst.items.concat(arr);
   dst.ended=arr.length<DPAGE||(dst.total!=null&&dst.items.length>=dst.total);
@@ -763,12 +798,36 @@ function dRenderAll(){
   if(!l.length){grid.innerHTML='<div class="empty">Aucun marché ne correspond. Élargissez la recherche.</div>';document.getElementById("d_count").textContent="";document.getElementById("d_more").style.display="none";return;}
   grid.innerHTML=l.map((m,i)=>`<div class="card"><div class="card-top"><span class="cpv">CPV ${esc(String(m.cpv).replace(/^CPV_?/i,'').slice(0,8))}</span><span class="dept">${esc(m.dept)}</span></div>
     <h4>${esc(m.title)}</h4><div class="buyer">${esc(m.buyer)}</div>
-    <div class="card-foot"><span class="cl">Clôture <b>${ddl(m.days)}</b></span>
+    <div class="card-foot"><span class="cl">Clôture <b>${ddl(m.days)}</b> · <span class="lnk" onclick="openMarketSheet(${i})">Détails</span></span>
     <button class="btn sm" type="button" onclick="dAccompany(${i})">Être accompagné</button></div></div>`).join("");
   if(dst.total!=null)document.getElementById("d_count").innerHTML=`<b>${dst.total.toLocaleString('fr-FR')}</b> marché(s) ouvert(s) — ${l.length} affiché(s)`;
   document.getElementById("d_more").style.display=dst.ended?"none":"inline-flex";
 }
 window.dAccompany=async i=>{const m=window._dfeed[i];if(!m)return; await tryAddDossier(m);};
+
+window.closeModal=()=>{document.getElementById("modal").style.display="none";};
+document.getElementById("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
+function fdate(s){if(!s)return"—";const d=new Date(s);return isNaN(d)?"—":d.toLocaleDateString("fr-FR");}
+window.openMarketSheet=i=>{
+  const m=window._dfeed[i];if(!m)return;
+  const cpv=String(m.cpv||"").replace(/^CPV_?/i,"");
+  document.getElementById("modalBody").innerHTML=`
+    <div class="modal-eyebrow">Avis de marché</div>
+    <h3>${esc(m.objetFull||m.title)}</h3>
+    <div class="modal-kv">
+      <span class="k">Acheteur</span><span class="v">${esc(m.buyer)}</span>
+      <span class="k">Département</span><span class="v">${esc(m.dept)}</span>
+      <span class="k">Code CPV</span><span class="v mono">${esc(cpv||"—")}</span>
+      <span class="k">Parution</span><span class="v">${fdate(m.parution)}</span>
+      <span class="k">Clôture</span><span class="v">${fdate(m.cloture)} (${ddl(m.days)})</span>
+      <span class="k">Référence</span><span class="v mono">${esc(m.ref)}</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" type="button" onclick="dAccompany(${i});closeModal()">Être accompagné sur ce marché</button>
+      ${m.url?`<a class="btn ghost" href="${esc(m.url)}" target="_blank" rel="noopener">Voir l'avis officiel ↗</a>`:""}
+    </div>`;
+  document.getElementById("modal").style.display="flex";
+};
 
 const PROFIL_REQUIS=["societe","siret","secteur","dept","salaries","ca","contact","tel","presentation"];
 function profileComplete(p){ if(!p)return false; return PROFIL_REQUIS.every(k=>p[k]!=null && String(p[k]).trim()!==""); }
@@ -826,12 +885,34 @@ function renderAdmin(){
   $("#adminClients").innerHTML=state.adminClients.map(c=>{
     const n=state.adminDossiers.filter(d=>d.client_id===c.id).length;
     const created=c.created_at?new Date(c.created_at).toLocaleDateString("fr-FR"):"—";
-    return `<tr><td class="t-co">${esc(c.societe||'—')}<div class="t-sub">${esc(c.contact||'—')} · inscrit le ${esc(created)}</div></td>
+    return `<tr style="cursor:pointer" onclick="openClientSheet('${c.id}')"><td class="t-co"><span class="lnk">${esc(c.societe||'—')}</span><div class="t-sub">${esc(c.contact||'—')} · inscrit le ${esc(created)}</div></td>
       <td>${esc(c.tel||'—')}<div class="t-sub">${esc(c.email||'')}</div></td><td>${esc(c.secteur||'—')}</td>
       <td class="t-sub">${esc(c.dept||'—')}</td><td>${esc(c.salaries||'—')}</td><td>${esc(c.ca||'—')}</td>
       <td style="text-align:center;font-weight:600">${n}</td></tr>`;
   }).join("")||'<tr><td colspan="7" class="empty">Aucun client.</td></tr>';
 }
+window.openClientSheet=(id)=>{
+  const c=(state.adminClients||[]).find(x=>x.id===id); if(!c)return;
+  const dos=(state.adminDossiers||[]).filter(d=>d.client_id===id);
+  const row=(k,v)=>`<span class="k">${k}</span><span class="v">${esc(v||"—")}</span>`;
+  const dosHtml=dos.length?dos.map(d=>`<div class="md-row"><span>${esc(d.objet)}</span><span class="badge${d.step>=3?' accepte':(d.step===2?' depose':'')}">${d.step>=3?'Accepté':(d.step===2?'Déposé':STEPS[d.step])}</span></div>`).join(""):'<div style="color:var(--ink-soft);font-size:13.5px;padding:6px 0">Aucun dossier.</div>';
+  document.getElementById("modalBody").innerHTML=`
+    <div class="modal-eyebrow">Fiche client</div>
+    <h3>${esc(c.societe||"—")}</h3>
+    <div class="modal-kv">
+      ${row("Contact",c.contact)}
+      ${row("Téléphone",c.tel)}
+      ${row("Email",c.email)}
+      ${row("SIRET",c.siret)}
+      ${row("Secteur",c.secteur)}
+      ${row("Département",c.dept)}
+      ${row("Salariés",c.salaries)}
+      ${row("Chiffre d'affaires",c.ca)}
+    </div>
+    ${c.presentation?`<div style="margin-top:16px;font-size:14px;color:var(--ink-soft);border-top:1px solid var(--line-soft);padding-top:14px"><b style="color:var(--ink)">Présentation</b><br>${esc(c.presentation)}</div>`:""}
+    <div class="modal-dossiers"><b style="font-size:14px">Dossiers (${dos.length})</b>${dosHtml}</div>`;
+  document.getElementById("modal").style.display="flex";
+};
 window.adminAdvance=async id=>{const d=state.adminDossiers.find(x=>x.id===id);if(!d||d.step>=STEPS.length-1)return;
   const {error}=await sb.from("dossiers").update({step:d.step+1}).eq("id",id);
   if(error){toast(error.message);return;}await adminLoad();toast("Statut mis à jour.");};
